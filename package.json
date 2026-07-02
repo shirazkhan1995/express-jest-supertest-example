@@ -1,20 +1,24 @@
 {
-  "name": "api-tests",
+  "name": "expense-tracker-api",
   "version": "1.0.0",
-  "description": "Testing with jest and supertest",
-  "main": "index.js",
+  "description": "A layered Express expense-tracker API — the subject of a from-scratch testing assignment (see docs/ASSIGNMENT.md)",
+  "main": "src/index.js",
   "scripts": {
-    "test": "jest",
-    "test-watch": "jest --watch",
-    "start": "node index.js"
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "db:seed": "node src/db/seed.js",
+    "test": "jest --passWithNoTests",
+    "test:watch": "jest --watch --passWithNoTests",
+    "test:coverage": "jest --coverage --passWithNoTests"
   },
-  "author": "Rein Op 't Land",
   "license": "MIT",
   "dependencies": {
-    "express": "^5.2.1",
-    "supertest": "^4.0.2"
+    "better-sqlite3": "^12.11.1",
+    "express": "^5.2.1"
   },
   "devDependencies": {
-    "jest": "^29.7.0"
+    "jest": "^29.7.0",
+    "nock": "^14.0.16",
+    "supertest": "^7.2.2"
   }
 }

@@ -1,65 +1,53 @@
-# Express / jest / supertest
+# Expense Tracker API — a from-scratch testing assignment
 
-[![Codeship Status for Reinoptland/express-jest-supertest-example](https://app.codeship.com/projects/1f91f7d0-8c8e-0138-2e12-724cb8de9fe3/status?branch=master)](https://app.codeship.com/projects/399428)
+A small but **real** Express 5 service: layered architecture, SQLite persistence, an external
+HTTP dependency, bearer auth, validation, and centralized error handling.
 
-Here is a simple example of performing end to end test for an express api
+It ships with **zero tests**. That's the assignment: build the unit, component, and
+integration test suite from scratch. Start here:
 
-- [Supertest](https://www.npmjs.com/package/supertest)
-- [Jest](https://jestjs.io/docs/en/getting-started)
+1. **[docs/API.md](./docs/API.md)** — the behavioral spec your tests must encode.
+2. **[docs/ASSIGNMENT.md](./docs/ASSIGNMENT.md)** — milestones, ground rules, and a rubric.
+3. **docs/SPOILERS.md** — 🚫 do not open until Milestone 4. The implementation deviates from
+   the spec in at least two places; your tests are supposed to find them.
 
-## Approach
+## Quick start
 
-- Instantiate the express app in [server.js](./server.js)
-- export it
-- Import it in test files like [users.spec.js](./routers/users.spec.js)
-- Mount the app using super test like so:
+```bash
+npm install
+npm run db:seed     # demo data in data/expenses.db
+npm start           # http://localhost:4000
 
-```javascript
-const app = require("../server");
-
-const supertest = require("supertest");
-const request = supertest(app);
+curl -H "Authorization: Bearer dev-token" localhost:4000/users
+curl -H "Authorization: Bearer dev-token" "localhost:4000/users/1/reports/monthly?month=$(date -u +%Y-%m)"
 ```
 
-- Make requests to it in test, **note** these kinds of tests are async, so you should call `done()` when the request is finished
+## Architecture
 
-```javascript
-describe("GET /users", () => {
-  test("should return an array of user objects", async (done) => {
-    const res = await request.get("/users");
-    expect(res.status).toBe(200);
-    expect(res.body.length).toEqual(5);
-    done();
-  });
-});
+```
+src/
+  index.js            # bootstrap: listen + graceful shutdown
+  app.js              # createApp({ db, ratesClient, apiToken, now }) — the DI seam
+  config.js           # env-driven configuration
+  routes/             # HTTP layer: parse params, delegate, set status
+  services/           # use-cases; factories take their dependencies as arguments
+  repositories/       # SQL, one module per table (better-sqlite3)
+  domain/             # pure logic: money, budgets, reports, validation, errors
+  middleware/         # bearer auth, 404 handler, central error handler
+  clients/            # ratesClient — external exchange-rate HTTP API (cached, timed out)
+  db/                 # connection factory, migrations, seed script
+tests/                # empty — yours to fill (jest, supertest, nock preinstalled)
 ```
 
-## Caveats
+Every layer receives its collaborators explicitly (no singletons), so each one can be tested
+in isolation and the whole app can be booted against an in-memory database:
 
-- This setup does not use a database (yet)
-- Id we want to also test the database integration we can take 2 approaches
+```js
+const { createApp } = require("./src/app");
+const { createDb } = require("./src/db/connection");
+const app = createApp({ db: createDb(":memory:"), apiToken: "test-token" });
+// hand `app` to supertest — no port, no shared state
+```
 
-1. Fire up a test database a populate it with test data (time consuming, but realistic setting)
-2. Mock the database by mocking the sequelize models for example (less time consuming, but also less realistic)
-
-## Exercise
-
-Using the scaffold already in place write tests for the following endpoints
-
-1. `POST /users`
-   - Should create a user
-   - Should return 400 with a message if the request does not contain firstName and lastName
-2. `PATCH /users/:id`
-   - Should update an existing user
-   - Should return 404 if the user doesn't exist
-   - Only firstName and lastName are allowed to be update, should return 403 if anything else is attempted to be updated
-3. `DELETE /users/:id`
-   - Should delete the user
-   - Should return 404 if the user doesn't exist
-   - Should return 401 unless the body of the request contains an Authorization header: 'Bearer I_AM_A_FAKE_TOKEN'
-
-## Bonus
-
-Setup continuous integration (CI) with [Code Ship](https://documentation.codeship.com/basic/quickstart/getting-started/)
-
-CI's can run your tests when you push to github, or before you deploy. Making sure that you and your colleagues don't break the app
+`npm test` currently runs jest with `--passWithNoTests` so CI is green on day one; removing
+that flag is part of the final milestone.
