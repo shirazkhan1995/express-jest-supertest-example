@@ -5,3 +5,4 @@ coverage/
 *.db-journal
 *.db-wal
 *.db-shm
+test-results/
