@@ -11,8 +11,10 @@
   "author": "Rein Op 't Land",
   "license": "MIT",
   "dependencies": {
-    "express": "^4.17.1",
-    "jest": "^26.0.1",
+    "express": "^5.2.1",
     "supertest": "^4.0.2"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
   }
 }
