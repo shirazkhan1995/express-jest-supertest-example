@@ -41,7 +41,7 @@ describe('convertCents', () => {
     });
 });
 
-describe('Test Format cents', () => {
+describe('formats whole and fractional currency units with a sign', () => {
     test('Test with ideal input', () => {
         expect(formatCents(-50)).toBe(`-0.50`);
         expect(formatCents(50)).toBe(`0.50`);
