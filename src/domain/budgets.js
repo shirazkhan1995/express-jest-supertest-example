@@ -8,7 +8,7 @@ function budgetStatus(spentCents, limitCents) {
     throw new RangeError("spentCents must be a non-negative integer");
   }
   if (spentCents > limitCents) return "OVER";
-  if (spentCents / limitCents > WARN_THRESHOLD) return "WARN";
+  if (spentCents / limitCents >= WARN_THRESHOLD) return "WARN";
   return "OK";
 }
 

@@ -13,6 +13,6 @@ describe('Test budget function', ()=>{
         expect(budgetStatus(1, 2)).toBe("OK");
         expect(budgetStatus(2, 2)).toBe("WARN");
         expect(budgetStatus(3, 2)).toBe("OVER");
-        expect(budgetStatus(32, 40)).toBe("OK");
+        expect(budgetStatus(32, 40)).toBe("WARN");
     })
 })
