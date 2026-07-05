@@ -1,3 +1,10 @@
+/**
+ * Request validation/parsing helpers shared by the route services. Each `validate*`/`parse*`
+ * function either returns a normalized value or throws {@link ValidationError} (400) — none of
+ * them mutate their input.
+ * @module domain/validate
+ */
+
 const { ValidationError } = require("./errors");
 
 const CATEGORIES = ["food", "transport", "housing", "entertainment", "health", "other"];
@@ -11,6 +18,12 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
 const CURRENCY_RE = /^[A-Z]{3}$/;
 
+/**
+ * Checks whether a value is a real calendar date in `YYYY-MM-DD` format
+ * (rejects e.g. `2026-02-30`, which is not a real day).
+ * @param {*} value
+ * @returns {boolean}
+ */
 function isValidDate(value) {
   if (typeof value !== "string" || !DATE_RE.test(value)) return false;
   const [y, m, d] = value.split("-").map(Number);
@@ -22,12 +35,22 @@ function isValidDate(value) {
   );
 }
 
+/**
+ * @param {*} body
+ * @throws {ValidationError} if body is not a plain JSON object (null, array, or non-object)
+ */
 function requireBodyObject(body) {
   if (body === null || typeof body !== "object" || Array.isArray(body)) {
     throw new ValidationError("Request body must be a JSON object");
   }
 }
 
+/**
+ * Validates a `POST /users` body.
+ * @param {*} body - expected `{ name, email }`
+ * @returns {{name: string, email: string}} name trimmed, email lowercased
+ * @throws {ValidationError} with one entry per invalid field in `details`
+ */
 function validateNewUser(body) {
   requireBodyObject(body);
   const errors = [];
@@ -41,6 +64,13 @@ function validateNewUser(body) {
   return { name: body.name.trim(), email: body.email.toLowerCase() };
 }
 
+/**
+ * Validates a `POST /users/:id/expenses` body.
+ * @param {*} body - expected `{ amountCents, category, description?, date }`
+ * @returns {{amountCents: number, category: string, description: string, date: string}}
+ *   `description` defaults to `""` when omitted
+ * @throws {ValidationError} with one entry per invalid field in `details`
+ */
 function validateNewExpense(body) {
   requireBodyObject(body);
   const errors = [];
@@ -74,6 +104,13 @@ function validateNewExpense(body) {
 
 const MUTABLE_EXPENSE_FIELDS = ["category", "description"];
 
+/**
+ * Validates a `PATCH /expenses/:id` body. Only `category` and `description` are mutable;
+ * any other key present in `body` is reported back as `immutable` rather than applied.
+ * @param {*} body
+ * @returns {{updates: object, immutable: string[]}}
+ * @throws {ValidationError} if `body` has no keys, or `category`/`description` are invalid
+ */
 function validateExpensePatch(body) {
   requireBodyObject(body);
   const keys = Object.keys(body);
@@ -104,6 +141,12 @@ function validateExpensePatch(body) {
   return { updates, immutable };
 }
 
+/**
+ * Validates a `PUT /users/:id/budgets/:category` body.
+ * @param {*} body - expected `{ monthlyLimitCents }`
+ * @returns {{monthlyLimitCents: number}}
+ * @throws {ValidationError} if `monthlyLimitCents` is not a positive integer
+ */
 function validateBudget(body) {
   requireBodyObject(body);
   if (!Number.isInteger(body.monthlyLimitCents) || body.monthlyLimitCents <= 0) {
@@ -114,6 +157,11 @@ function validateBudget(body) {
   return { monthlyLimitCents: body.monthlyLimitCents };
 }
 
+/**
+ * @param {*} value
+ * @returns {string} the value, unchanged
+ * @throws {ValidationError} if value is not one of `CATEGORIES`
+ */
 function validateCategory(value) {
   if (!CATEGORIES.includes(value)) {
     throw new ValidationError(`category must be one of: ${CATEGORIES.join(", ")}`);
@@ -121,6 +169,11 @@ function validateCategory(value) {
   return value;
 }
 
+/**
+ * @param {*} value
+ * @returns {string} the value, unchanged
+ * @throws {ValidationError} if value is not a string in `YYYY-MM` format (01-12)
+ */
 function validateMonth(value) {
   if (typeof value !== "string" || !MONTH_RE.test(value)) {
     throw new ValidationError("month must be provided in YYYY-MM format");
@@ -128,6 +181,11 @@ function validateMonth(value) {
   return value;
 }
 
+/**
+ * @param {*} value
+ * @returns {string} the value, unchanged
+ * @throws {ValidationError} if value is not a 3-letter uppercase ISO currency code
+ */
 function validateCurrency(value) {
   if (typeof value !== "string" || !CURRENCY_RE.test(value)) {
     throw new ValidationError("currency must be a 3-letter uppercase ISO code, e.g. EUR");
@@ -135,6 +193,13 @@ function validateCurrency(value) {
   return value;
 }
 
+/**
+ * Coerces a route param to a positive integer id.
+ * @param {*} value
+ * @param {string} [name="id"] - field name used in the error message
+ * @returns {number}
+ * @throws {ValidationError} if value does not coerce to a positive integer
+ */
 function parseId(value, name = "id") {
   const id = Number(value);
   if (!Number.isInteger(id) || id <= 0) {
@@ -143,6 +208,12 @@ function parseId(value, name = "id") {
   return id;
 }
 
+/**
+ * Parses and validates `page`/`pageSize` query params.
+ * @param {{page?: *, pageSize?: *}} query - defaults: page=1, pageSize={@link DEFAULT_PAGE_SIZE}
+ * @returns {{page: number, pageSize: number, limit: number, offset: number}}
+ * @throws {ValidationError} if page < 1, or pageSize is outside `[1, MAX_PAGE_SIZE]`
+ */
 function parsePagination(query) {
   const page = query.page === undefined ? 1 : Number(query.page);
   const pageSize = query.pageSize === undefined ? DEFAULT_PAGE_SIZE : Number(query.pageSize);
